@@ -1,125 +1,41 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 
-import Header from "./components/Header";
-import StatsBar from "./components/StatsBar";
-import PipelineView from "./components/PipelineView";
-import LiveFeed from "./components/LiveFeed";
-import AlertHistory from "./components/AlertHistory";
+import markup from "./cybermate-markup.html?raw";
+import engineScript from "./cybermate-engine.js?raw";
 
+/**
+ * App
+ * ----------------------------------------------------------------------
+ * This renders the exact CyberMate experience from the reference
+ * cybermate.html file: theme switcher -> animated intro -> operation
+ * menu -> normal log scan / brute-force pipeline simulation -> success
+ * screen. The markup and the vanilla-JS "engine" that drives it are kept
+ * verbatim (as separate .html/.js source files, imported as raw text via
+ * Vite's `?raw` loader) so behaviour and visuals match the original 1:1.
+ *
+ * The engine script is injected as a real <script> tag (rather than via
+ * dangerouslySetInnerHTML, which never executes <script> contents) so that
+ * its top-level `function` declarations attach to `window`, exactly as
+ * they did in the original static HTML file. That's required because the
+ * markup's inline `onclick="goMenu()"` style handlers resolve through the
+ * global scope.
+ */
 function App() {
-  const [theme, setTheme] = useState("cyberpunk");
-
   useEffect(() => {
-    document.body.className = "";
-    document.body.classList.add(`theme-${theme}`);
-  }, [theme]);
+    // Guard against double-injection (React StrictMode re-invokes effects
+    // once in dev, and Vite HMR can re-run this module) — CyberMate's
+    // engine starts animation loops / intervals that must only run once.
+    if (window.__cybermateBooted) return;
+    window.__cybermateBooted = true;
 
-  const stats = {
-    threatsDetected: 24,
-    threatsBlocked: 18,
-    activeAgents: 4,
-    riskLevel: "MEDIUM",
-  };
-
-  const liveThreats = [
-    {
-      id: 1,
-      ip: "192.168.1.10",
-      type: "Brute Force Attack",
-      severity: "Critical",
-      status: "Blocked",
-    },
-    {
-      id: 2,
-      ip: "172.16.0.22",
-      type: "Malware Attempt",
-      severity: "High",
-      status: "Investigating",
-    },
-    {
-      id: 3,
-      ip: "10.10.1.15",
-      type: "Suspicious Login",
-      severity: "Medium",
-      status: "Monitoring",
-    },
-  ];
-
-  const alertHistory = [
-    {
-      id: 1,
-      timestamp: "10:35 AM",
-      threat: "Brute Force Attack",
-      severity: "Critical",
-      action: "Blocked",
-    },
-    {
-      id: 2,
-      timestamp: "10:20 AM",
-      threat: "Malware Upload",
-      severity: "High",
-      action: "Quarantined",
-    },
-    {
-      id: 3,
-      timestamp: "09:50 AM",
-      threat: "Suspicious Login",
-      severity: "Medium",
-      action: "Monitored",
-    },
-  ];
+    const script = document.createElement("script");
+    script.id = "cybermate-engine";
+    script.text = engineScript;
+    document.body.appendChild(script);
+  }, []);
 
   return (
-    <div className="app-container">
-
-      {/* Background Grid */}
-      <div className="cyber-background"></div>
-
-      {/* Header */}
-      <Header theme={theme} setTheme={setTheme} />
-
-      {/* Dashboard */}
-      <main className="dashboard">
-
-        {/* Top Stats */}
-        <StatsBar stats={stats} />
-
-        {/* Pipeline */}
-        <section className="dashboard-section">
-          <h2 className="section-title">
-            AGENTIC SECURITY PIPELINE
-          </h2>
-
-          <PipelineView />
-        </section>
-
-        {/* Live Feed */}
-        <section className="dashboard-section">
-          <h2 className="section-title">
-            LIVE THREAT FEED
-          </h2>
-
-          <LiveFeed threats={liveThreats} />
-        </section>
-
-        {/* Alert History */}
-        <section className="dashboard-section">
-          <h2 className="section-title">
-            ALERT HISTORY
-          </h2>
-
-          <AlertHistory alerts={alertHistory} />
-        </section>
-
-      </main>
-
-      {/* Footer */}
-      <footer className="footer">
-        <span>CYBERMATE SOC v1.0</span>
-        <span>Agentic Security Operations Center</span>
-      </footer>
-
-    </div>
+    <div id="cybermate-root" dangerouslySetInnerHTML={{ __html: markup }} />
   );
 }
 
